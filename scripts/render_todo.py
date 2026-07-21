@@ -16,10 +16,40 @@ import csv
 import json
 import os
 import shutil
+import sys
 from datetime import date, datetime, timedelta
 
-# ---- 默认路径（数据根，可用 --data 覆盖）----
-DEFAULT_DATA_DIR = r"E:/OneDrive/Datas/03_中旅发展/AI_WorkPlace/work-log"
+# ---- 默认路径（数据根：优先读同目录 config.json 的 data_root，可用 --data 覆盖）----
+def _load_config_data_root():
+    """读 config.json 的 data_root；缺失返回 None。兼容两种布局：
+    - config 与脚本同目录；
+    - skill 标准结构：脚本在 scripts/ 下，config.json 在 skill 根（上一级）。"""
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(here, "config.json"),
+        os.path.join(here, "..", "config.json"),
+    ]
+    for cfg_path in candidates:
+        if os.path.exists(cfg_path):
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    return json.load(f).get("data_root")
+            except Exception:
+                return None
+    return None
+
+
+DEFAULT_DATA_DIR = _load_config_data_root()  # None 表示未配置，运行时需 --data 或先 setup
+
+
+def _resolve_data_dir(data_arg):
+    """解析数据根：--data 优先；否则用 config.json；都没有则明确报错。"""
+    d = data_arg or DEFAULT_DATA_DIR
+    if not d:
+        print("ERROR: 未解析到数据根。请传 --data <路径>，或先运行【MODE=setup】生成 config.json。",
+              file=sys.stderr)
+        sys.exit(2)
+    return d
 TODO_FILE = "todos.json"
 ARCHIVE_FILE = "archive.json"
 MORNING_FILE = "morning.md"
@@ -334,25 +364,26 @@ def main():
     p_e.add_argument("--out", default="todos.csv")
 
     args = parser.parse_args()
+    data_dir = _resolve_data_dir(args.data)
     if args.cmd == "render":
         if getattr(args, "archive", False):
-            n = archive(args.data, args.days)
+            n = archive(data_dir, args.days)
             print(f"[archive] 已归档 {n} 项（> {args.days} 天）")
-        print(render(args.data, args.days, args.out))
+        print(render(data_dir, args.days, args.out))
     elif args.cmd == "archive":
-        n = archive(args.data, args.days)
+        n = archive(data_dir, args.days)
         print(f"已归档 {n} 项（> {args.days} 天）")
     elif args.cmd == "report":
-        content = report(args.data, args.from_date, args.to_date,
+        content = report(data_dir, args.from_date, args.to_date,
                          args.group_by, args.metric, args.format)
         if args.out:
-            with open(os.path.join(args.data, args.out), "w", encoding="utf-8") as f:
+            with open(os.path.join(data_dir, args.out), "w", encoding="utf-8") as f:
                 f.write(content)
             print(f"报表已写入 {args.out}")
         else:
             print(content)
     elif args.cmd == "export-csv":
-        out = export_csv(args.data, args.out)
+        out = export_csv(data_dir, args.out)
         print(f"已导出 {out}")
     else:
         parser.print_help()

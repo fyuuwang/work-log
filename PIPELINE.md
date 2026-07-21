@@ -7,7 +7,7 @@
 
 ## 0. 核心原则
 
-1. **数据源是结构化 JSON，不是 Markdown。** `todo.md` 旧式 Markdown 已废弃，待办真相源为 `todos.json`。
+1. **数据源是结构化 JSON，不是 Markdown。** `todo.md` 旧式 Markdown 已废弃，待办真相源为 `<DATA_ROOT>/todos.json`。
 2. **AI 只做语义层**：听懂人话、整理措辞、按 `categories.md` 归类、把数据写进 `todos.json`、标记完成。AI **绝不**在展示环节重新排版。
 3. **脚本只做机械层**：解析 JSON → 渲染晨报 / 计数 / 按日期归档 / 按维度统计。脚本是确定性程序，不做语义判断。
 4. **晨报 = 脚本生成的 `morning.md`，AI 原样推送**，不做任何格式改写。
@@ -18,25 +18,27 @@
 ## 1. 文件布局
 
 ```
-skills/work-log/                     # 本 skill 代码（用户级）
+skills/work-log/                     # 本 skill 代码（用户级，可分享）
   PIPELINE.md                        # 【本文件】主规范
   SKILL.md                           # 入口，模式A指向 PIPELINE
+  config.json                        # 【本机专属】data_root 等，不进分享包
   references/
-    categories.md                    # 父任务别名 + type/source 受控词表（AI 归类用）
+    categories.md                    # 父任务别名 + type/source 受控词表（AI 归类用，个人自学填充）
     mode-morning.md                  # 摄取细则（加待办/标记完成）
-    mode-daily.md                    # 每日回顾（已删待办归档节，避免冲突）
-    mode-weekly.md usage-tracking.md db-schema.md
+    mode-daily.md                    # 每日回顾
+    mode-weekly.md usage-tracking.md db-schema.md mode-setup.md
   scripts/
     render_todo.py                   # 【机械层】render/archive/report/export-csv
     read_credits.py                  # 用量（不变）
 
-E:/OneDrive/Datas/03_中旅发展/AI_WorkPlace/work-log/   # 运行时数据根
+<DATA_ROOT>/                         # 运行时数据根（由 config.json 提供）
   todos.json                         # 【真相源】全部待办（19字段）
   archive.json                       # 归档层：done 且 >14天（只增不删）
   morning.md                         # 晨报（脚本每日覆盖）
   report-YYYYMMDD.md / .csv          # 临时统计报表（脚本生成）
   todo.md                            # 已废弃（保留作历史，不再写入）
   daily/ weekly-*/ usage/ state/     # 不变
+  categories.md                      # 个人词表（首次由向导生成空白模板，AI 后续自学填充）
 ```
 
 ---
@@ -55,13 +57,13 @@ E:/OneDrive/Datas/03_中旅发展/AI_WorkPlace/work-log/   # 运行时数据根
 | `status` | ✅ | `open` / `waiting` / `done` |
 | `priority` | ◻ | P1 / P2 / P3 |
 | `assignee` | ◻ | 协作人；文字出现人名则 AI 自动抓取填入 |
-| `supplier` | ◻ | 外部供应商（如 中旅数科） |
+| `supplier` | ◻ | 外部供应商（如 乙方供应商） |
 | `created_date` | ✅ | 添加日期 `YYYY-MM-DD` |
 | `updated_date` | ✅ | 最近修改日期（任何编辑刷新） |
 | `started_date` | ◻ | 实际开始日 |
 | `completed_date` | ◻ | 完成日期；`open`/`waiting` 时为 `null` |
 | `due_date` | ◻ | 截止日期 |
-| `waiting_for` | ◻ | `status=waiting` 时填，如 `宏玉` |
+| `waiting_for` | ◻ | `status=waiting` 时填，如 `某同事` |
 | `reviewed` | ✅ | 是否经你人工核对（`false` 默认，`true` 核对后） |
 | `result` | ◻ | 交付物/结论（`done` 时填） |
 | `tags` | ◻ | 自由多标签（数组，如 `["合同","紧急"]`） |
@@ -74,7 +76,7 @@ E:/OneDrive/Datas/03_中旅发展/AI_WorkPlace/work-log/   # 运行时数据根
 ## 3. 脚本命令（机械层，零判断）
 
 脚本：`scripts/render_todo.py`（纯标准库 `json`/`csv`/`datetime`/`argparse`）。
-数据根默认 `E:/OneDrive/Datas/03_中旅发展/AI_WorkPlace/work-log/`，可用 `--data` 覆盖。
+数据根默认读取 `config.json` 的 `data_root`，可用 `--data` 覆盖。
 
 ### 3.1 `render` —— 生成晨报
 ```
@@ -157,6 +159,6 @@ python render_todo.py export-csv [--out todos.csv]
 
 ## 7. 人名自动抓取规则
 
-- 待办文字出现人名（如"等宏玉""找胡总要材料""让香香老师"），AI 把该人名写入 `assignee`。
-- 人名识别参考 `categories.md` 的父任务别名表（含人员别名，如 宏玉/胡总/香香/高佳怡）。
-- 系统/工具名（如 workstem 视为平台能力）不强制填 `assignee`，可放 `notes`。
+- 待办文字出现人名（如"等某同事""找某负责人要材料""让某同事"），AI 把该人名写入 `assignee`。
+- 人名识别参考 `categories.md` 的父任务别名表（含人员别名，如 某同事A/某同事B）。
+- 系统/工具名（如某平台能力）不强制填 `assignee`，可放 `notes`。

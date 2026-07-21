@@ -1,7 +1,7 @@
 # WorkBuddy 本地数据库结构（用量追踪用）
 
-数据源：`~/.workbuddy/workbuddy.db`（SQLite）。读取用受管 Python：
-`~/.workbuddy/binaries/python/versions/3.13.12/python.exe`
+数据源：`~/.workbuddy/workbuddy.db`（SQLite）。读取用受管 Python（`<PYTHON>`，即按 `config.json` 的 `python_bin` 解析的解释器；`"auto"` 取最新受管版本）：
+`<PYTHON>`
 
 > 重要：credit 真实来源是 `session_usage.credit_json`，**不是** `traces/` 目录。
 > `traces/` 里没有 credit 字段，`totalTokens` 恒为 0。
@@ -90,4 +90,4 @@ ORDER BY eff_updated ASC;
 - hy3 是否免费以 `credit_json` 是否为 NULL 为准，不以模型名判断（曾有 hy3 会话产生
   credit 的实例）。
 - 不要手填 credit 数字，全部由 `read_credits.py` 从数据库读出。
-- 不要估算"省了多少 DeepSeek Token"——不可比，禁止写入用量记录。
+- 不要估算"省了多少兜底模型 Token"——不可比，禁止写入用量记录。

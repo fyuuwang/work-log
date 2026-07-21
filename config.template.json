@@ -1,0 +1,10 @@
+{
+  "_comment": "复制本文件为 config.json 并填入你自己的值。config.json 是本机专属，不要提交到分享仓库/备份镜像。",
+  "data_root": "请替换为你的工作日志数据根绝对路径，例如 D:/MyWork/work-log",
+  "plan_tiers": {
+    "base": 2000,
+    "current": 4000
+  },
+  "fallback_models": ["DeepSeek", "Codex"],
+  "python_bin": "auto"
+}

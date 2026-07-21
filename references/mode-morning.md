@@ -14,7 +14,7 @@
 
 ## 数据源
 
-`E:/OneDrive/Datas/03_中旅发展/AI_WorkPlace/work-log/todos.json`（19 字段，见 `PIPELINE.md` 第 2 节）。
+`<DATA_ROOT>/todos.json`（19 字段，见 `PIPELINE.md` 第 2 节）。
 类别映射参考 `references/categories.md`（父任务别名 + type/source 受控词表）。
 
 ---
@@ -24,10 +24,10 @@
 1. **解析用户的话**：拆成若干条目（如"加 X；Y。Z 做完了"→ X、Y 新增，Z 标记完成）。
 2. **语言调整**：口语 → 简洁条目（保留关键信息，去掉口水话）。
 3. **分类映射**（查 `categories.md`）：
-   - 父任务 `parent`：按别名表归并（如"胡总""宏玉"→ `企微用友审批`）。
+   - 父任务 `parent`：按别名表归并（如"某同事A""某同事B"→ 对应 `父任务`）。
    - `type` / `source`：从受控词表选最贴切的值。
    - 未命中且明显是新项目 → **提议**新父任务/新词，待用户确认后写入 `categories.md`（不擅自创造规范值）。
-4. **人名自动抓**：条目文字出现人名（如"等宏玉""找胡总要材料""让香香老师"）→ 写入 `assignee`。
+4. **人名自动抓**：条目文字出现人名（如"等某同事""找某负责人要材料""让某同事"）→ 写入 `assignee`。
 5. **写/改 `todos.json`**：
    - 新增：追加一条，`id` 取当前最大序号+1（如 `t010`），`created_date`=`updated_date`=今天，`reviewed`=false，`status` 推断（open / waiting 若有"等X"）。
    - "X做完了"：定位该条（按 `id` 或 `parent`+`title` 近似）→ 置 `status=done`、`completed_date`=今天、`updated_date`=今天；若 `assignee` 空且文字有人名则补抓。**找不到源行 → 提示用户确认，不臆造。**

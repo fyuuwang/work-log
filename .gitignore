@@ -1,0 +1,6 @@
+# 本机专属配置，不进分享包/备份镜像
+config.json
+
+# Python
+__pycache__/
+*.pyc
