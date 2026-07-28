@@ -47,7 +47,7 @@
 
 ```
 <DATA_ROOT>/
-  todos.json            # {"items":[]}（19 字段待办真相源，空起步）
+  todos.json            # {"items":[]}（20 字段待办真相源，空起步）
   archive.json          # {"items":[]}
   morning.md            # 空文件（晨报由脚本覆盖）
   daily/               # 目录（每日总结）

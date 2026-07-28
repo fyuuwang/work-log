@@ -153,8 +153,24 @@ def render(data_dir, days, out_name=MORNING_FILE):
         lines.append("_无_")
     else:
         for idx, p in enumerate(groups, 1):
+            items_in_p = gmap[p]
             lines.append(f"### {cn_num(idx)}、{p}")
-            for it in gmap[p]:
+            # 二级分组：按 subgroup（保持原始顺序，subgroup 变化时插入子组标题）
+            last_sg = None
+            for it in items_in_p:
+                sg = it.get("subgroup") or ""
+                if sg and sg != last_sg:
+                    # 新的子组开始：空行 + 子组标题 + 空行（如果前面已经渲染过内容则加空行隔开）
+                    if last_sg is not None:
+                        lines.append("")
+                    lines.append(f"**{sg}**")
+                    lines.append("")
+                    last_sg = sg
+                elif not sg and last_sg != "":
+                    # 从子组回到无子组的条目：加空行隔开
+                    if last_sg is not None:
+                        lines.append("")
+                    last_sg = ""
                 lines.append("  - [ ] " + fmt_item(it))
     lines.append("")
     lines.append(f"## 已完成（近 {days} 天）")
@@ -237,7 +253,7 @@ def archive(data_dir, days):
 # ---------------------------------------------------------------------------
 # report
 # ---------------------------------------------------------------------------
-FIELDS = ["id", "title", "parent", "type", "source", "status", "priority",
+FIELDS = ["id", "title", "parent", "subgroup", "type", "source", "status", "priority",
           "assignee", "supplier", "created_date", "updated_date", "started_date",
           "completed_date", "due_date", "waiting_for", "reviewed", "result",
           "tags", "notes"]

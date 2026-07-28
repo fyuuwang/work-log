@@ -5,10 +5,11 @@ allowed-tools: Read,Bash,Write,conversation_search,WebFetch
 description: >
   工作日志与用量追踪助手。每天/每周自动沉淀工作内容与 WorkBuddy credit 用量，
   生成给自己看的大/小两层总结与给领导的周报。务必在以下场景使用：用户说"工作日志""日报"
-  "周报""每日复盘""今天干了什么""本周干了什么""待办""用量日结""credit 用了多少"
-  "workbuddy 花了多少""套餐划算吗"；或自动化以【MODE=morning】产出晨间待办、
-  【MODE=daily】做每日回顾+用量、【MODE=weekly】做周五周报时。本 skill 由 3 个
-  WorkBuddy 自动化按固定时间调用，也可由用户手动触发对应模式。首次使用运行【MODE=setup】。
+  "周报""每日复盘""今天干了什么""本周干了什么""待办""用量日结""credit 用了多少" "workbuddy
+  花了多少""套餐划算吗"；或自动化以【MODE=morning】产出晨间待办、
+  【MODE=daily】做每日回顾+用量、【MODE=weekly】做周五周报时。本 skill 由 3 个 WorkBuddy
+  自动化按固定时间调用，也可由用户手动触发对应模式。首次使用运行【MODE=setup】。
+disable: true
 ---
 
 # Work Log（工作日志 + 用量追踪）
@@ -44,7 +45,7 @@ description: >
 
 ## 模式 A：晨间待办（09:15）
 
-- 数据源为结构化 JSON（`<DATA_ROOT>/todos.json`，19 字段），主规范见 `PIPELINE.md`。
+- 数据源为结构化 JSON（`<DATA_ROOT>/todos.json`，20 字段），主规范见 `PIPELINE.md`。
 - 晨报由脚本机械生成：跑 `scripts/render_todo.py render --archive` → 读取 `morning.md` **原样推送**（AI 不重写格式，展示层零判断）。
 - 三个入口：① 摄取（"加待办/XX做完了"→ AI 写 JSON，事后人工审核）② 晨跑（09:15 自动）③ 看工作情况（`report` 按日期范围 + 父任务/type/source 统计）。
 - 详细主规范：`PIPELINE.md`；摄取细则：`references/mode-morning.md`。
@@ -97,7 +98,7 @@ credit 数字**机器读，不手填**。运行：
   scripts/read_trace.py                                 # trace 提取脚本
   references/                                           # 各模式 SOP + 类别表 + 数据库结构 + 用量模板 + setup 向导
 <DATA_ROOT>/                                              # 运行时数据根（个人独立工作区，建议云盘）
-  todos.json                                            # ① 待办真相源（19 字段，结构化）
+  todos.json                                            # ① 待办真相源（20 字段，结构化）
   archive.json                                          # ② 归档层（done >14 天，只增不删）
   morning.md                                            # ③ 晨报（脚本每日覆盖）
   todo.md                                               # （已废弃，历史保留，不再写入）

@@ -32,7 +32,7 @@ skills/work-log/                     # 本 skill 代码（用户级，可分享�
     read_credits.py                  # 用量（不变）
 
 <DATA_ROOT>/                         # 运行时数据根（由 config.json 提供）
-  todos.json                         # 【真相源】全部待办（19字段）
+  todos.json                         # 【真相源】全部待办（20字段）
   archive.json                       # 归档层：done 且 >14天（只增不删）
   morning.md                         # 晨报（脚本每日覆盖）
   report-YYYYMMDD.md / .csv          # 临时统计报表（脚本生成）
@@ -43,7 +43,7 @@ skills/work-log/                     # 本 skill 代码（用户级，可分享�
 
 ---
 
-## 2. 数据模型（19 字段）
+## 2. 数据模型（20 字段）
 
 每条待办是一个 JSON 对象，字段如下（✅必填 / ◻选填）：
 
@@ -52,6 +52,7 @@ skills/work-log/                     # 本 skill 代码（用户级，可分享�
 | `id` | ✅ | 唯一短ID（如 `t001`），稳定标识，支持修改/完成追踪 |
 | `title` | ✅ | 待办内容（AI 整理后的简洁条目） |
 | `parent` | ✅ | 父任务/项目（group-by 主键；零散任务=`其他`） |
+| `subgroup` | ◻ | 二级分组（如"昭津银行账户增加""共享节点调整"），在同 parent 内进一步归类；没有则不填，渲染时自动以粗体子组标题隔开 |
 | `type` | ✅ | 受控词表：需求/开发/采购/审批/会议/文档/沟通/其他 |
 | `source` | ✅ | 受控词表：领导交办/会议/自查/供应商/其他 |
 | `status` | ✅ | `open` / `waiting` / `done` |
@@ -84,7 +85,7 @@ python render_todo.py render [--days 14] [--data DIR] [--out morning.md]
 ```
 - 读取 `todos.json`。
 - 进行中 = `status != done` 的全部项；近完成 = `status == done` 且 `completed_date >= 今天-天数`。
-- 生成 `morning.md`：标题 + 进度概览（🔴进行中 N ｜ ✅已完成 M）+ 按 `parent` 分组列出进行中 + 列出近完成。
+- 生成 `morning.md`：标题 + 进度概览（🔴进行中 N ｜ ✅已完成 M）+ 按 `parent` 分组列出进行中（同一 parent 内按 `subgroup` 二级分组） + 列出近完成。
 - 仅渲染，**不归档**（摄取时用）。
 
 ### 3.2 `archive` —— 归档超期完成项
@@ -112,7 +113,7 @@ python render_todo.py report --from YYYY-MM-DD --to YYYY-MM-DD \
 ```
 python render_todo.py export-csv [--out todos.csv]
 ```
-- 把所有 `items` 平铺成 CSV（含全部 19 字段，`tags` 用 `;` 连接），供你在 Excel 自行透视。
+- 把所有 `items` 平铺成 CSV（含全部 20 字段，`tags` 用 `;` 连接），供你在 Excel 自行透视。
 
 ---
 
