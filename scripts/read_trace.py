@@ -18,7 +18,15 @@ TRACES_ROOT = os.path.expanduser("~/.workbuddy/traces")
 
 
 def find_trace_files(session_id=None, target_date=None):
-    """遍历 traces/ 目录, 找到匹配的 trace 文件。"""
+    """遍历 traces/ 目录, 找到匹配的 trace 文件。
+
+    兼容两种 trace 格式：
+      - 老格式（2026-07 及更早）：trace 顶层含 sessionId，可用 --session 精确匹配。
+      - 新格式（2026-08 起）：trace 顶层无 sessionId（仅 traceId/startedAt/mtime），
+        --session 失效，只能靠 --date 按【本地文件修改时间】全量扫描，再由 AI
+        用 DB sessions.updated_at 交叉核对归属。
+    --date 按文件 mtime（本地时区）过滤，避免 startedAt 为 UTC 导致的 8 小时偏移。
+    """
     matches = []
     target_date_obj = None
     if target_date:
@@ -43,21 +51,18 @@ def find_trace_files(session_id=None, target_date=None):
             trace = data.get("trace", {})
             sid = trace.get("sessionId", "")
 
-            # --session mode
+            # --session mode（仅老格式有效）
             if session_id and sid == session_id:
                 matches.append((fp, data, sid))
                 continue
 
-            # --date mode: check startedAt
+            # --date mode: 按文件 mtime（本地）过滤，天然无时区偏移
             if target_date_obj:
-                started = trace.get("startedAt", "")
-                if started:
-                    try:
-                        d = datetime.fromisoformat(started.replace("Z", "+00:00")).date()
-                        if d == target_date_obj:
-                            matches.append((fp, data, sid))
-                    except (ValueError, AttributeError):
-                        pass
+                mtime = datetime.fromtimestamp(os.path.getmtime(fp)).date()
+                if mtime == target_date_obj:
+                    # 新格式无 sessionId -> 用 traceId 兜底标识
+                    sid = sid or trace.get("traceId", "")
+                    matches.append((fp, data, sid))
 
     return matches
 
@@ -156,8 +161,8 @@ def summarize_session(traces_data):
 
 def main():
     parser = argparse.ArgumentParser(description="从 traces 提取会话上下文摘要")
-    parser.add_argument("--session", help="会话 UUID")
-    parser.add_argument("--date", help="日期 YYYY-MM-DD")
+    parser.add_argument("--session", help="会话 UUID（老格式 trace 有效；2026-08 起新格式无 sessionId，请改用 --date）")
+    parser.add_argument("--date", help="日期 YYYY-MM-DD（按本地文件修改时间过滤，兼容新旧格式）")
 
     args = parser.parse_args()
     if not args.session and not args.date:
@@ -166,7 +171,8 @@ def main():
 
     trace_files = find_trace_files(session_id=args.session, target_date=args.date)
     if not trace_files:
-        print("[]  # 未找到匹配的 trace 文件")
+        hint = "（新格式 trace 无 sessionId，--session 已失效，请改用 --date）" if args.session else ""
+        print(f"[]  # 未找到匹配的 trace 文件 {hint}")
         return
 
     # 按 session_id 分组

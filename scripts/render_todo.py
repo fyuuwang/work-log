@@ -133,7 +133,7 @@ def render(data_dir, days, out_name=MORNING_FILE):
         if i.get("status") == "done" and (d(i.get("completed_date")) or t) >= cutoff
     ]
 
-    # 按 parent 分组（保持首次出现顺序）
+    # 按 parent 分组（保持首次出现顺序，非P1的"其他"放最后）
     groups = []
     gmap = {}
     for it in open_items:
@@ -142,6 +142,16 @@ def render(data_dir, days, out_name=MORNING_FILE):
             gmap[p] = []
             groups.append(p)
         gmap[p].append(it)
+
+    # "其他"除非有 P1 项，否则排到最后
+    if "其他" in gmap:
+        has_p1 = any(
+            it.get("priority") and "P1" in str(it.get("priority"))
+            for it in gmap["其他"]
+        )
+        if not has_p1:
+            groups.remove("其他")
+            groups.append("其他")
 
     lines = []
     lines.append(f"# 晨间待办 · {t.isoformat()}")
