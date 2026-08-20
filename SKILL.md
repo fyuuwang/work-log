@@ -9,7 +9,6 @@ description: >
   花了多少""套餐划算吗"；或自动化以【MODE=morning】产出晨间待办、
   【MODE=daily】做每日回顾+用量、【MODE=weekly】做周五周报时。本 skill 由 3 个 WorkBuddy
   自动化按固定时间调用，也可由用户手动触发对应模式。首次使用运行【MODE=setup】。
-disable: true
 ---
 
 # Work Log（工作日志 + 用量追踪）
