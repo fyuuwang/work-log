@@ -81,13 +81,16 @@ skills/work-log/                     # 本 skill 代码（用户级，可分享�
 
 ### 3.1 `render` —— 生成晨报
 ```
-python render_todo.py render [--days 14] [--data DIR] [--out morning.md] [--no-done]
+python render_todo.py render [--days 14] [--data DIR] [--out morning.md] [--no-done] [--done-full]
 ```
 - 读取 `todos.json`。
 - 进行中分两区：`open` = 「进行中（我要做）」、`waiting` = 「⏳ 等待中（等别人）」；近完成 = `status == done` 且 `completed_date >= 今天-天数`。
-- 生成 `morning.md`：标题 + 进度概览（🔴进行中 N ｜ ⏳等待中 M ｜ ✅已完成 K）+ 按 `parent` 分组列出两区（同一 parent 内按 `subgroup` 二级分组；组内按 priority→due→created 排序） + 列出近完成。
+- 生成 `morning.md`：标题 + 进度概览（🔴进行中 N ｜ ⏳等待中 M ｜ ✅已完成 K）+ 按 `parent` 分组列出两区（同一 parent 内按 `subgroup` 二级分组；组内按 priority→due→created 排序） + 已完成区。
 - 待提醒区分「⚠️ 已逾期（超 N 天）」置顶与「⏳ 未到期」两节（逾期天数由脚本自动算）。
-- `--no-done`：跳过"已完成"节（摄取反馈精简用，见入口 A）。
+- **已完成区三种模式（2026-08-26 三层递进）**：
+  - 默认**摘要**：按板块计数一行 + 最近完成 5 条明细 + 完整列表查看提示（晨跑推送用，防刷屏）；
+  - `--done-full`：全量列表（旧行为，按需查看）；
+  - `--no-done`：完全跳过（摄取反馈精简用，见入口 A）。
 - 仅渲染，**不归档**（摄取时用）。
 
 ### 3.2 `archive` —— 归档超期完成项

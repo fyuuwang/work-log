@@ -177,7 +177,7 @@ def _render_group(lines, groups, gmap, prefix="  - [ ] "):
             lines.append(prefix + fmt_item(it))
 
 
-def render(data_dir, days, out_name=MORNING_FILE, no_done=False):
+def render(data_dir, days, out_name=MORNING_FILE, no_done=False, done_full=False):
     todo_path = os.path.join(data_dir, TODO_FILE)
     data = load(todo_path)
     items = data.get("items", [])
@@ -217,12 +217,12 @@ def render(data_dir, days, out_name=MORNING_FILE, no_done=False):
         _render_group(lines, groups, gmap)
         lines.append("")
 
-    # ---- 已完成（近 N 天）----
+    # ---- 已完成（近 N 天）：--no-done 跳过 / --done-full 全量 / 默认摘要 ----
     if not no_done:
-        lines.append(f"## 已完成（近 {days} 天）")
+        lines.append(f"## 已完成（近 {days} 天，{len(recent_done)} 项）")
         if not recent_done:
             lines.append("_无_")
-        else:
+        elif done_full:
             for it in sorted(recent_done, key=lambda x: d(x.get("completed_date")) or t, reverse=True):
                 cd = it.get("completed_date") or ""
                 parent = it.get("parent") or "其他"
@@ -235,6 +235,30 @@ def render(data_dir, days, out_name=MORNING_FILE, no_done=False):
                 if suffix:
                     line += " （" + "，".join(suffix) + "）"
                 lines.append(line)
+        else:
+            # 摘要模式（默认）：按板块计数 + 最近 5 条明细
+            cnt = {}
+            for it in recent_done:
+                p = it.get("parent") or "其他"
+                cnt[p] = cnt.get(p, 0) + 1
+            by_count = sorted(cnt.items(), key=lambda kv: (-kv[1], kv[0]))
+            lines.append("**按板块**：" + " ｜ ".join(f"{p} {n}" for p, n in by_count))
+            recent5 = sorted(recent_done, key=lambda x: d(x.get("completed_date")) or t, reverse=True)[:5]
+            lines.append("**最近完成**：")
+            for it in recent5:
+                cd = it.get("completed_date") or ""
+                parent = it.get("parent") or "其他"
+                line = f"✅ {it.get('title', '')} - {parent}"
+                suffix = []
+                if cd:
+                    suffix.append(cd)
+                if it.get("result"):
+                    suffix.append(it["result"])
+                if suffix:
+                    line += " （" + "，".join(suffix) + "）"
+                lines.append(line)
+            lines.append("")
+            lines.append(f"> 完整列表：`python render_todo.py render --done-full`")
         lines.append("")
 
     # ---- 待提醒：进行中设了 due_date 的项，区分已逾期 / 未到期 ----
@@ -520,6 +544,8 @@ def main():
                      help="渲染前先把 >N 天的 done 项归档（晨跑用）")
     p_r.add_argument("--no-done", action="store_true",
                      help="跳过'已完成'节（摄取反馈精简用）")
+    p_r.add_argument("--done-full", action="store_true",
+                     help="'已完成'节输出全量列表（默认只出摘要：板块计数+最近5条）")
 
     p_a = sub.add_parser("archive")
     p_a.add_argument("--days", type=int, default=DEFAULT_DAYS)
@@ -550,7 +576,9 @@ def main():
         if getattr(args, "archive", False):
             n = archive(data_dir, args.days)
             print(f"[archive] 已归档 {n} 项（> {args.days} 天）")
-        print(render(data_dir, args.days, args.out, no_done=getattr(args, "no_done", False)))
+        print(render(data_dir, args.days, args.out,
+                     no_done=getattr(args, "no_done", False),
+                     done_full=getattr(args, "done_full", False)))
     elif args.cmd == "archive":
         n = archive(data_dir, args.days)
         print(f"已归档 {n} 项（> {args.days} 天）")
