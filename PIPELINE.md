@@ -81,11 +81,13 @@ skills/work-log/                     # 本 skill 代码（用户级，可分享�
 
 ### 3.1 `render` —— 生成晨报
 ```
-python render_todo.py render [--days 14] [--data DIR] [--out morning.md]
+python render_todo.py render [--days 14] [--data DIR] [--out morning.md] [--no-done]
 ```
 - 读取 `todos.json`。
-- 进行中 = `status != done` 的全部项；近完成 = `status == done` 且 `completed_date >= 今天-天数`。
-- 生成 `morning.md`：标题 + 进度概览（🔴进行中 N ｜ ✅已完成 M）+ 按 `parent` 分组列出进行中（同一 parent 内按 `subgroup` 二级分组） + 列出近完成。
+- 进行中分两区：`open` = 「进行中（我要做）」、`waiting` = 「⏳ 等待中（等别人）」；近完成 = `status == done` 且 `completed_date >= 今天-天数`。
+- 生成 `morning.md`：标题 + 进度概览（🔴进行中 N ｜ ⏳等待中 M ｜ ✅已完成 K）+ 按 `parent` 分组列出两区（同一 parent 内按 `subgroup` 二级分组；组内按 priority→due→created 排序） + 列出近完成。
+- 待提醒区分「⚠️ 已逾期（超 N 天）」置顶与「⏳ 未到期」两节（逾期天数由脚本自动算）。
+- `--no-done`：跳过"已完成"节（摄取反馈精简用，见入口 A）。
 - 仅渲染，**不归档**（摄取时用）。
 
 ### 3.2 `archive` —— 归档超期完成项
@@ -96,6 +98,14 @@ python render_todo.py archive [--days 14] [--data DIR]
 - **只动 `done` 项，绝不碰 `open`/`waiting`（安全原则）**。
 - 归档前对 `todos.json` 拍 `.bak` 快照 → 内存构建新内容 → 临时文件原子改名 → 写后校验；异常放弃并还原快照。
 - 无日期的 `done` 项视为最旧，立即归档。
+
+### 3.3 `validate` —— 数据完整性校验（2026-08-26 新增）
+```
+python render_todo.py validate [--data DIR]
+```
+- 校验 `todos.json` / `archive.json`：JSON 语法、`items` 结构、必填字段、id 唯一、枚举（status 硬校验；type/source 为 WARN，允许新增词）、日期格式、语义一致性（`waiting_for`↔`status`、`completed_date`↔`done`）、`reviewed`/`tags` 类型。
+- 输出 `✓ 校验通过` 或错误/警告清单；**存在 ERROR 时退出码 1**（AI 必须修复后再渲染）。
+- **摄取后强制执行**（见入口 A），防 JSON 手改损坏（2026-08-26 t093 逗号事故教训）。
 
 ### 3.3 `report` —— 按日期范围 + 维度统计
 ```
@@ -122,8 +132,9 @@ python render_todo.py export-csv [--out todos.csv]
 ### 入口 A：摄取（"把待办加进去"，用户触发）
 1. 你说人话（"加个 X；Y。Z 做完了"）。
 2. AI 语义层：① 语言调整（口语→简洁条目）② 查 `categories.md` 别名→归 `parent`，从受控词表选 `type`/`source` ③ **人名自动抓**进 `assignee` ④ 写/改 `todos.json`（新增挂到对应 `parent`；"X做完了"→该条 `status=done`、`completed_date=今天`、`updated_date=今天`）⑤ 新项 `reviewed=false`。
-3. AI 跑 `render_todo.py render`，把 `morning.md` 给你看，**并点出"新增 X、Y 落在『父任务』"**供你审核。
-4. **你事后核对**：无误不管；有误提异议 → AI 改 `todos.json` 重跑。
+3. AI 跑 `render_todo.py validate` **防错校验**：有 `[ERROR]` 先修复再继续（不许带错渲染）；`[WARN]` 顺手修正。
+4. AI 跑 `render_todo.py render --no-done`，展示**进行中 / 等待中**两个区块，并**点出"新增 X、Y 落在『父任务』"**供你审核（2026-08-26 起不再贴全量晨报，已完成列表只在晨跑展示）。
+5. **你事后核对**：无误不管；有误提异议 → AI 改 `todos.json` 重跑（重跑同样走 validate → render --no-done）。
 
 **跨文件移动细则（"X做完了"）**：
 - 在 `todos.json` 按 `id` 或（`parent`+`title` 近似）定位该条 → 置 `status=done`、`completed_date=今天`、`updated_date=今天`；若原 `assignee` 为空且文字有人名则补抓。

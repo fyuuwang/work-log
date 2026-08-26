@@ -32,8 +32,13 @@
 5. **写/改 `todos.json`**：
    - 新增：追加一条，`id` 取当前最大序号+1（如 `t010`），`created_date`=`updated_date`=今天，`reviewed`=false，`status` 推断（open / waiting 若有"等X"）。
    - "X做完了"：定位该条（按 `id` 或 `parent`+`title` 近似）→ 置 `status=done`、`completed_date`=今天、`updated_date`=今天；若 `assignee` 空且文字有人名则补抓。**找不到源行 → 提示用户确认，不臆造。**
-6. **立刻 `--render`** 生成 `morning.md`，把内容给用户看，并**点出"新增 X、Y 落在『父任务』"**供审核。
-7. **人工审核闭环**：用户事后核对；无误不管；有误提异议 → AI 改 `todos.json` 重跑。不用来回确认才写。
+6. **防错校验（2026-08-26 起强制）**：写/改完 JSON 后**先跑 `validate`** 再渲染：
+   ```
+   <PYTHON> ~/.workbuddy/skills/work-log/scripts/render_todo.py validate
+   ```
+   - 通过（`✓ ... 0 错误`）→ 继续；出现 `[ERROR]` → **先修复再往下走**（不许带错渲染）；出现 `[WARN]` → 判断是否本次改动引入，顺手修正（如 `waiting_for` 非空但 `status=open`）。
+7. **反馈精简（2026-08-26 用户确认）**：摄取后**不贴全量晨报**，只给**变更摘要**：跑 `render_todo.py render --no-done`（跳过已完成节），展示输出里**进行中 / 等待中**两个区块，同时一句话点出"新增 X、Y 落在『父任务』；完成 Z"。全量晨报（含已完成）只在晨跑时推送。
+8. **人工审核闭环**：用户事后核对；无误不管；有误提异议 → AI 改 `todos.json` 重跑（重跑同样走 validate → render --no-done）。不用来回确认才写。
 
 ---
 

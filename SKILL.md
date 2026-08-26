@@ -45,8 +45,8 @@ description: >
 ## 模式 A：晨间待办（09:15）
 
 - 数据源为结构化 JSON（`<DATA_ROOT>/todos.json`，20 字段），主规范见 `PIPELINE.md`。
-- 晨报由脚本机械生成：跑 `scripts/render_todo.py render --archive` → 读取 `morning.md` **原样推送**（AI 不重写格式，展示层零判断）。
-- 三个入口：① 摄取（"加待办/XX做完了"→ AI 写 JSON，事后人工审核）② 晨跑（09:15 自动）③ 看工作情况（`report` 按日期范围 + 父任务/type/source 统计）。
+- 晨报由脚本机械生成：跑 `scripts/render_todo.py render --archive` → 读取 `morning.md` **原样推送**（AI 不重写格式，展示层零判断）。晨报含「进行中（我要做）/ ⏳等待中 / 已完成 / ⏰待提醒（已逾期置顶）」四区块。
+- 三个入口：① 摄取（"加待办/XX做完了"→ AI 写 JSON → **先 `validate` 防错** → `render --no-done` 给变更摘要，事后人工审核）② 晨跑（09:15 自动）③ 看工作情况（`report` 按日期范围 + 父任务/type/source 统计）。
 - 详细主规范：`PIPELINE.md`；摄取细则：`references/mode-morning.md`。
 
 ## 模式 B：每日工作回顾（17:00）
