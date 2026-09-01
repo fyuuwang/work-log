@@ -107,12 +107,16 @@ def fmt_item(it):
         s += f"({it['priority']}) "
     s += it.get("title", "")
     extra = []
+    # 统一标记约定：所有与条目关联的关键人（负责人、对接人、阻塞方/第二第三方）一律用 @X 表示，
+    # 不再使用「等X」。@X 按出现顺序去重并以"；"连接；等待状态由所在分组（⏳ 等待中）体现。
+    persons = []
+    if it.get("assignee"):
+        persons.append(it["assignee"])
     is_waiting = it.get("status") == "waiting" and it.get("waiting_for")
-    # assignee 与 waiting_for 相同时只显示一处（避免"@香香；等香香"重复）
-    if it.get("assignee") and not (is_waiting and it["waiting_for"] == it.get("assignee")):
-        extra.append(f"@{it['assignee']}")
-    if is_waiting:
-        extra.append(f"等{it['waiting_for']}")
+    if is_waiting and it["waiting_for"] not in persons:
+        persons.append(it["waiting_for"])
+    if persons:
+        extra.append("；".join("@" + p for p in persons))
     if it.get("due_date"):
         extra.append(f"截止{it['due_date']}")
     if extra:
