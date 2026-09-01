@@ -108,7 +108,8 @@ def fmt_item(it):
     s += it.get("title", "")
     extra = []
     # 统一标记约定：所有与条目关联的关键人（负责人、对接人、阻塞方/第二第三方）一律用 @X 表示，
-    # 不再使用「等X」。@X 按出现顺序去重并以"；"连接；等待状态由所在分组（⏳ 等待中）体现。
+    # 不再使用「等X」。@X 按出现顺序去重并以"；"连接；等待/阻塞对象由 @X 体现。
+    # 注：进行中与等待中已合并为「待办」区，不再单独分组，故不依赖分组标题表达等待状态。
     persons = []
     if it.get("assignee"):
         persons.append(it["assignee"])
@@ -190,6 +191,7 @@ def render(data_dir, days, out_name=MORNING_FILE, no_done=False, done_full=False
 
     open_items = [i for i in items if i.get("status") == "open"]
     waiting_items = [i for i in items if i.get("status") == "waiting"]
+    active_items = open_items + waiting_items  # 进行中 + 等待中，合并呈现
     recent_done = [
         i for i in items
         if i.get("status") == "done" and (d(i.get("completed_date")) or t) >= cutoff
@@ -198,28 +200,19 @@ def render(data_dir, days, out_name=MORNING_FILE, no_done=False, done_full=False
     lines = []
     lines.append(f"# 晨间待办 · {t.isoformat()}")
     lines.append("")
-    stats = f"🔴 进行中 {len(open_items)} 项"
-    if waiting_items:
-        stats += f" ｜ ⏳ 等待中 {len(waiting_items)} 项"
+    stats = f"🔴 待办 {len(active_items)} 项"
     stats += f" ｜ ✅ 已完成 {len(recent_done)} 项"
     lines.append(f"**进度概览**：{stats}")
     lines.append("")
 
-    # ---- 进行中（我要做，open）----
-    lines.append("## 进行中（我要做）")
-    if not open_items:
+    # ---- 待办（进行中 + 等待中，合并呈现；PM 视角两者难分）----
+    lines.append("## 待办（进行中 / 等待中）")
+    if not active_items:
         lines.append("_无_")
     else:
-        groups, gmap = _group_items(open_items)
+        groups, gmap = _group_items(active_items)
         _render_group(lines, groups, gmap)
     lines.append("")
-
-    # ---- 等待中（等别人，waiting）----
-    if waiting_items:
-        lines.append(f"## ⏳ 等待中（等别人，{len(waiting_items)} 项）")
-        groups, gmap = _group_items(waiting_items)
-        _render_group(lines, groups, gmap)
-        lines.append("")
 
     # ---- 已完成（近 N 天）：--no-done 跳过 / --done-full 全量 / 默认摘要 ----
     if not no_done:
